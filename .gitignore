@@ -1,4 +1,5 @@
 __pycache__
-./evaluate_results
-./training_checkpoints
-./ganomaly.gif
+evaluate_results/
+training_checkpoints/
+*.gif
+*.png
