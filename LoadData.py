@@ -18,7 +18,7 @@ class LoadData():
         self.x_test = self.x_test[(self.y_test==normal_class) | (self.y_test == abnormal_class_1) | (self.y_test == abnormal_class_2)]
         self.y_test = self.y_test[(self.y_test==normal_class) | (self.y_test == abnormal_class_1) | (self.y_test == abnormal_class_2)]
         
-        print(self.y_test)
+        #print(self.y_test)
         
         return (self.x_ok, self.x_test, self.y_test)
     

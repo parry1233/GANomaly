@@ -62,7 +62,7 @@ def evaluate_fig(g, g_e, epoch, classType):
     score = np.sum(np.abs(encoded - encoded_gan), axis = -1)
     score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     rcParams['figure.figsize'] = 14, 5
-    plt.scatter(range(len(x_test)), score, c=['blue' if x == normal else ('green' if x==abnormal_1 else'red') for x in y_test])
+    plt.scatter(range(len(x_test)), score, c=['blue' if x == normal else ('pink' if x==abnormal_1 else'red') for x in y_test])
     #plt.show()
     # save plot to file
     filename = 'evaluate_results/scatter_plot_{:04d}.png'.format(epoch)
@@ -111,7 +111,8 @@ if __name__ == "__main__":
     gantrainer = GANtrainer(g_e, g, e, f_e)
     
     gantrainer.compile()
-    d.compile(optimizer='adam', loss='binary_crossentropy')
+    opt = tf.keras.optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)
+    d.compile(optimizer=opt, loss='binary_crossentropy')
     
     gTrainer = gantrainer.getModel()
     

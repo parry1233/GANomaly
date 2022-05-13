@@ -36,6 +36,27 @@ class ENCloss(keras.layers.Layer): #Encoder loss
     def get_output_shape_for(self, input_shape):
         return (input_shape[0][0], 1)
     
+class APPloss(keras.layers.Layer): #Apparent loss -> Adversarial loss
+    def __init__(self, **kwargs):
+        super(APPloss, self).__init__(**kwargs)
+    def call(self, x, mask=None):
+        f_e = x[2]
+        ori_feature = f_e(x[0])
+        gan_feature = f_e(x[1])
+        return K.mean(K.square(K.abs(ori_feature - gan_feature)))
+    def get_output_shape_for(self, input_shape):
+        return (input_shape[0][0], 1)
+    
+class LATloss(keras.layers.Layer): #Latent loss (without feature extractor) -> Content loss
+    def __init__(self, **kwargs):
+        super(LATloss, self).__init__(**kwargs)
+    def call(self, x, mask=None):
+        ori = x[0]
+        gan = x[1]
+        return K.mean(K.square(ori - gan))
+    def get_output_shape_for(self, input_shape):
+        return (input_shape[0][0], 1)
+      
 class GANtrainer():
     def __init__(self, g_e, g ,e, f_e):
         self.height, self.width, self.channels = 64, 64, 1
@@ -44,11 +65,15 @@ class GANtrainer():
         self.input_layer = layers.Input(name='input', shape=(self.height, self.width, self.channels))
         self.gan = self.g(self.input_layer) # g(x)
         
-        self.adv_loss = ADVloss(name='adv_loss')([self.input_layer, self.gan, self.f_e ])
-        self.cnt_loss = CNTloss(name='cnt_loss')([self.input_layer, self.gan])
-        self.enc_loss = ENCloss(name='enc_loss')([self.input_layer, self.gan, self.g_e, self.e ])
+        #self.adv_loss = ADVloss(name='adv_loss')([self.input_layer, self.gan, self.f_e ])
+        self.adv_loss = APPloss(name='adv_loss')([self.input_layer, self.gan, self.f_e ])
+        #self.cnt_loss = CNTloss(name='cnt_loss')([self.input_layer, self.gan])
+        self.cnt_loss = LATloss(name='cnt_loss')([self.input_layer, self.gan])
+        #self.enc_loss = ENCloss(name='enc_loss')([self.input_layer, self.gan, self.g_e, self.e ])
+        self.enc_loss = ENCloss(name='enc_loss')([self.input_layer, self.gan, self.g_e, self.g_e ])
         
         self.gan_trainer = tf.keras.Model(self.input_layer, [self.adv_loss, self.cnt_loss, self.enc_loss])
+        #self.gan_trainer.summary()
     
     def loss(self, yt, yp):
         return yp
@@ -60,10 +85,11 @@ class GANtrainer():
             'enc_loss': self.loss
         }
         
-        lossWeights = {'cnt_loss':20.0, 'adv_loss':1.0, 'enc_loss':1.0}
+        lossWeights = {'cnt_loss':50.0, 'adv_loss':1.0, 'enc_loss':1.0}
         
         #compile
-        self.gan_trainer.compile(optimizer='adam', loss=losses, loss_weights=lossWeights)
+        opt = tf.keras.optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)
+        self.gan_trainer.compile(optimizer=opt, loss=losses, loss_weights=lossWeights)
         
         print('\nGANtrainer structure:')
         self.gan_trainer.summary()
