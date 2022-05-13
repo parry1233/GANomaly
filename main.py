@@ -63,6 +63,7 @@ def evaluate_fig(g, g_e, epoch, classType):
     score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     rcParams['figure.figsize'] = 14, 5
     plt.scatter(range(len(x_test)), score, c=['blue' if x == normal else ('pink' if x==abnormal_1 else'red') for x in y_test])
+    plt.title('epoch: {:04d}'.format(epoch))
     #plt.show()
     # save plot to file
     filename = 'evaluate_results/scatter_plot_{:04d}.png'.format(epoch)
@@ -89,7 +90,7 @@ def pic(ganX):
     
 def generate_GIF():
     anim_file = 'ganomaly.gif'
-    with imageio.get_writer(anim_file, mode='I') as writer:
+    with imageio.get_writer(anim_file, mode='I', duration=0.5) as writer:
         filenames = glob.glob('evaluate_results/scatter*.png')
         filenames = sorted(filenames)
         for filename in filenames:
