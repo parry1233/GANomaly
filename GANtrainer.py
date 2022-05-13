@@ -85,7 +85,7 @@ class GANtrainer():
             'enc_loss': self.loss
         }
         
-        lossWeights = {'cnt_loss':20.0, 'adv_loss':1.0, 'enc_loss':1.0}
+        lossWeights = {'cnt_loss':50.0, 'adv_loss':1.0, 'enc_loss':1.0}
         
         #compile
         opt = tf.keras.optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)

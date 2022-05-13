@@ -32,7 +32,7 @@ def train(x_ok, gan_trainer, d, g, g_e, cp, cpdir, classType, bz=32, epoch=1000)
         d.trainable = False        
         g_loss = gan_trainer.train_on_batch(x, y)
         
-        if (i+1) % 5 == 0:
+        if (i+1) % 10 == 0:
             print(f'epoch: {i+1}, g_loss: {g_loss}, d_loss: {d_loss}')
             save_checkpoints(cp, cpdir)
             evaluate_fig(g, g_e, i+1, classType)
@@ -107,8 +107,7 @@ def generate_GIF():
     
 if __name__ == "__main__":
     normal, abnormal = 1, -1
-    (x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main()
-    print(x_ok.shape, x_test.shape)
+    (x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main(train_data_ratio=0.8)
     #x_ok = loadData.reshape_x(x_ok, 64, 64)
     #x_test = loadData.reshape_x(x_test, 64, 64)
     
@@ -125,7 +124,7 @@ if __name__ == "__main__":
     checkpoint = tf.train.Checkpoint(g_e = g_e, g = g, e = e, f_e = f_e, d = d)
     checkpoint_dir = './training_checkpoints'
     
-    train(x_ok, gTrainer, d, g, g_e ,checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=50)
+    train(x_ok, gTrainer, d, g, g_e ,checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=500)
     generate_GIF()
     final_ganX = final_evaluate(g,g_e, normal)
     #pic(final_ganX)

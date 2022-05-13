@@ -1,4 +1,5 @@
 from TimeSeriesGenerator.utils import generate_steady_series, generate_anomaly_series, generate_all_features
+#from utils import generate_steady_series, generate_anomaly_series, generate_all_features
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas
@@ -112,24 +113,26 @@ def generateFeature(series_df,series_df_anomaly):
 
 def split(feature, train_rate=0.8):
     # reshaffle the data
-    features_steady = features_steady.sample(frac = 1, random_state = 25)
+    features = feature.sample(frac = 1, random_state = 25)
 
     #define the split point
-    n_split = int(features_steady.shape[0]*train_rate)
-    train = features_steady[:n_split]
-    test = features_steady[n_split:]
+    n_split = int(features.shape[0]*train_rate)
+    train = features[:n_split]
+    test = features[n_split:]
     return (train, test)
 
 
-def prepareDataset(steady, anomaly):  # combine the data and convert pandas.DataFrame object to a numpy.array
-    train = pandas.concat([steady]).reset_index(drop=True)
+def prepareDataset(steady, anomaly, ratio):  # combine the data and convert pandas.DataFrame object to a numpy.array
+    train_steady, _ = split(steady,ratio)
+    train = pandas.concat([train_steady]).reset_index(drop=True)
     test = pandas.concat([steady, anomaly ]).sample(frac=1).reset_index(drop=True)
     #print(train)
+    #print(test)
     X_train = train.drop(columns =['target']).values
     y_train = train['target'].values
     X_test = test.drop(columns =['target']).values
     y_test = test['target'].values
-    
+    print(y_test)
     X_train_reshape = NPreshape(X_train,5,5)
     X_test_reshape = NPreshape(X_test,5,5)
     
@@ -139,7 +142,7 @@ def NPreshape(x,height,width):
     new_x = np.empty((len(x), width, height))
     return np.reshape(x,(len(x),height,width,1))
 
-def dataPreprocess_Main():
+def dataPreprocess_Main(train_data_ratio = 0.9):
     np.random.seed(1)
     steady_series = generate_steady_series(N_samples=500, max_size = 1000)
     anomaly_series = generate_anomaly_series(N_samples=500, max_size = 1000)
@@ -158,7 +161,7 @@ def dataPreprocess_Main():
     #(train_x_ok, test_x_ok) = split(steady_df,1.0) #use all normal to train (100% train, 0% test)
     
     #(x_ok, y_ok), (x_test, y_test) = prepareDataset(f_steady, f_anomaly)
-    return prepareDataset(f_steady, f_anomaly)
+    return prepareDataset(f_steady, f_anomaly, train_data_ratio)
 
 if __name__=='__main__':
     np.random.seed(1)
@@ -200,10 +203,10 @@ if __name__=='__main__':
     #(train_x_ok, test_x_ok) = split(steady_df,1.0) #use all normal to train (100% train, 0% test)
     
     (x_ok, y_ok), (x_test, y_test) = prepareDataset(f_steady, f_anomaly)
-    print(x_ok)
+    #print(x_ok)
     print(x_ok.shape)
     print(y_ok.shape)
-    print(x_test)
+    #print(x_test)
     print(x_test.shape)
     print(y_test.shape)
     x_ok_reshape = NPreshape(x_ok,5,5)
