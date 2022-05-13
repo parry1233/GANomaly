@@ -9,10 +9,14 @@ import imageio
 import glob
 import tensorflow as tf
 import os
+from TimeSeriesGenerator.main import dataPreprocess_Main
     
 def train(x_ok, gan_trainer, d, g, g_e, cp, cpdir, classType, bz=32, epoch=1000):
     train_data_generator = get_data_generator(x_ok, bz)
     for i in range(epoch):
+        if i==0:
+            evaluate_fig(g, g_e, i+1, classType)
+        
         x, y= train_data_generator.__next__()
         
         ### train disciminator ###
@@ -28,7 +32,7 @@ def train(x_ok, gan_trainer, d, g, g_e, cp, cpdir, classType, bz=32, epoch=1000)
         d.trainable = False        
         g_loss = gan_trainer.train_on_batch(x, y)
         
-        if (i+1) % 50 == 0 or i == 0:
+        if (i+1) % 5 == 0:
             print(f'epoch: {i+1}, g_loss: {g_loss}, d_loss: {d_loss}')
             save_checkpoints(cp, cpdir)
             evaluate_fig(g, g_e, i+1, classType)
@@ -55,14 +59,14 @@ def get_data_generator(data, batch_size=32):
             yield train_x, [y, y, y]
             
 def evaluate_fig(g, g_e, epoch, classType):
-    normal, abnormal_1, abnormal_2 = classType[0], classType[1], classType[2]
+    normal, abnormal = classType[0], classType[1]
     encoded = g_e.predict(x_test)
     gan_x = g.predict(x_test)
     encoded_gan = g_e.predict(gan_x)
     score = np.sum(np.abs(encoded - encoded_gan), axis = -1)
     score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     rcParams['figure.figsize'] = 14, 5
-    plt.scatter(range(len(x_test)), score, c=['blue' if x == normal else ('pink' if x==abnormal_1 else'red') for x in y_test])
+    plt.scatter(range(len(x_test)), score, c=['blue' if x == normal else 'red' for x in y_test])
     plt.title('epoch: {:04d}'.format(epoch))
     #plt.show()
     # save plot to file
@@ -88,6 +92,7 @@ def pic(ganX):
     plt.imshow(image.astype(np.uint8), cmap='gray')
     plt.show()
     
+    
 def generate_GIF():
     anim_file = 'ganomaly.gif'
     with imageio.get_writer(anim_file, mode='I', duration=0.5) as writer:
@@ -101,11 +106,11 @@ def generate_GIF():
     
     
 if __name__ == "__main__":
-    loadData = LoadData()
-    normal, abnormal_1, abnormal_2 = 1, 7, 0
-    (x_ok, x_test, y_test) = loadData.Define_normal_Abnormal(normal, abnormal_1, abnormal_2)
-    x_ok = loadData.reshape_x(x_ok, 64, 64)
-    x_test = loadData.reshape_x(x_test, 64, 64)
+    normal, abnormal = 1, -1
+    (x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main()
+    print(x_ok.shape, x_test.shape)
+    #x_ok = loadData.reshape_x(x_ok, 64, 64)
+    #x_test = loadData.reshape_x(x_test, 64, 64)
     
     ganomaly = GANomaly()
     (g_e, g, e, f_e, d) = ganomaly.getModel()
@@ -120,7 +125,7 @@ if __name__ == "__main__":
     checkpoint = tf.train.Checkpoint(g_e = g_e, g = g, e = e, f_e = f_e, d = d)
     checkpoint_dir = './training_checkpoints'
     
-    train(x_ok, gTrainer, d, g, g_e ,checkpoint, checkpoint_dir, [normal,abnormal_1,abnormal_2], bz=32, epoch=1000)
+    train(x_ok, gTrainer, d, g, g_e ,checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=50)
     generate_GIF()
     final_ganX = final_evaluate(g,g_e, normal)
-    pic(final_ganX)
+    #pic(final_ganX)

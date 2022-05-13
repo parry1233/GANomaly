@@ -59,7 +59,7 @@ class LATloss(keras.layers.Layer): #Latent loss (without feature extractor) -> C
       
 class GANtrainer():
     def __init__(self, g_e, g ,e, f_e):
-        self.height, self.width, self.channels = 64, 64, 1
+        self.height, self.width, self.channels = 5, 5, 1
         self.g_e, self.g, self.e, self.f_e = g_e, g, e, f_e
         # model for training
         self.input_layer = layers.Input(name='input', shape=(self.height, self.width, self.channels))
@@ -85,7 +85,7 @@ class GANtrainer():
             'enc_loss': self.loss
         }
         
-        lossWeights = {'cnt_loss':50.0, 'adv_loss':1.0, 'enc_loss':1.0}
+        lossWeights = {'cnt_loss':20.0, 'adv_loss':1.0, 'enc_loss':1.0}
         
         #compile
         opt = tf.keras.optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)
