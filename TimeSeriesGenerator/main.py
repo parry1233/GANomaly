@@ -8,10 +8,11 @@ from scipy.stats import trim_mean
 from scipy.stats.mstats import trimmed_std
 from scipy.stats import kurtosis, skew
 from statsmodels.tsa.stattools import pacf
+import random
 import cv2
 
 def plt_signal(series):
-    n = 0
+    n = random.randint(0, len(series)-1)
     fig, ax = plt.subplots(1,2, dpi = 150, figsize = (10, 4))
     ax[0].plot(series[n].signal)
     ax[0].set_ylim(0, np.max(series[n].signal)*1.05)
@@ -123,11 +124,11 @@ def split(feature, train_rate=0.8):
 
 
 def prepareDataset(steady, anomaly, ratio):  # combine the data and convert pandas.DataFrame object to a numpy.array
-    train_steady, _ = split(steady,ratio)
+    train_steady, test_steady = split(steady,ratio)
     train = pandas.concat([train_steady]).reset_index(drop=True)
-    test = pandas.concat([steady, anomaly ]).sample(frac=1).reset_index(drop=True)
-    #print(train)
-    #print(test)
+    test = pandas.concat([test_steady, anomaly ]).sample(frac=1).reset_index(drop=True)
+    print(train)
+    print(test)
     X_train = train.drop(columns =['target']).values
     y_train = train['target'].values
     X_test = test.drop(columns =['target']).values
@@ -144,8 +145,8 @@ def NPreshape(x,height,width):
 
 def dataPreprocess_Main(train_data_ratio = 0.9):
     np.random.seed(1)
-    steady_series = generate_steady_series(N_samples=500, max_size = 1000)
-    anomaly_series = generate_anomaly_series(N_samples=500, max_size = 1000)
+    steady_series = generate_steady_series(N_samples=5000, max_size = 1000)
+    anomaly_series = generate_anomaly_series(N_samples=1000, max_size = 1000)
     
     steady_df=convert_to_dataframe(steady_series)
     anomaly_df=convert_to_dataframe(anomaly_series)
@@ -202,7 +203,7 @@ if __name__=='__main__':
     
     #(train_x_ok, test_x_ok) = split(steady_df,1.0) #use all normal to train (100% train, 0% test)
     
-    (x_ok, y_ok), (x_test, y_test) = prepareDataset(f_steady, f_anomaly)
+    (x_ok, y_ok), (x_test, y_test) = prepareDataset(f_steady, f_anomaly, 0.5)
     #print(x_ok)
     print(x_ok.shape)
     print(y_ok.shape)
@@ -211,7 +212,7 @@ if __name__=='__main__':
     print(y_test.shape)
     x_ok_reshape = NPreshape(x_ok,5,5)
     x_test_reshape = NPreshape(x_test,5,5)
-    print(x_ok_reshape)
+    #print(x_ok_reshape)
     print(x_ok_reshape.shape)
-    print(x_test_reshape)
+    #print(x_test_reshape)
     print(x_test_reshape.shape)

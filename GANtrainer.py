@@ -43,7 +43,7 @@ class APPloss(keras.layers.Layer): #Apparent loss -> Adversarial loss
         f_e = x[2]
         ori_feature = f_e(x[0])
         gan_feature = f_e(x[1])
-        return K.mean(K.square(K.abs(ori_feature - gan_feature)))
+        return K.mean(K.abs(ori_feature - gan_feature))
     def get_output_shape_for(self, input_shape):
         return (input_shape[0][0], 1)
     
@@ -53,7 +53,7 @@ class LATloss(keras.layers.Layer): #Latent loss (without feature extractor) -> C
     def call(self, x, mask=None):
         ori = x[0]
         gan = x[1]
-        return K.mean(K.square(ori - gan))
+        return K.mean(K.abs(ori - gan))
     def get_output_shape_for(self, input_shape):
         return (input_shape[0][0], 1)
       
@@ -88,7 +88,7 @@ class GANtrainer():
         lossWeights = {'cnt_loss':50.0, 'adv_loss':1.0, 'enc_loss':1.0}
         
         #compile
-        opt = tf.keras.optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)
+        opt = tf.keras.optimizers.Adam(lr=0.0002, beta_1=0.5, beta_2=0.999)
         self.gan_trainer.compile(optimizer=opt, loss=losses, loss_weights=lossWeights)
         
         print('\nGANtrainer structure:')
