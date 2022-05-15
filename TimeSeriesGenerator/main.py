@@ -127,6 +127,7 @@ def prepareDataset(steady, anomaly, ratio):  # combine the data and convert pand
     train_steady, test_steady = split(steady,ratio)
     train = pandas.concat([train_steady]).reset_index(drop=True)
     test = pandas.concat([test_steady, anomaly ]).sample(frac=1).reset_index(drop=True)
+    #train.to_excel(excel_writer = 'final_result/Origin_table.xlsx')
     print(train)
     print(test)
     X_train = train.drop(columns =['target']).values

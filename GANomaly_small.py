@@ -20,12 +20,19 @@ class GANomaly():
         self.f_e = self.Feature_Extractor()
         self.d = self.Discriminator()
         
-    def load(self,g_e, g, e, f_e, d):
-        self.g_e = g_e
-        self.g = g
-        self.e = e
-        self.f_e = f_e
-        self.d = d
+    def saveModel(self):
+        self.g_e.save('saved_model/G_E')
+        self.g.save('saved_model/G')
+        self.e.save('saved_model/E')
+        self.f_e.save('saved_model/F_E')
+        self.d.save('saved_model/D')
+        
+    def load_model(self):
+        self.g_e = tf.keras.models.load_model('saved_model/G_E')
+        self.g = tf.keras.models.load_model('saved_model/G')
+        self.e = tf.keras.models.load_model('saved_model/E')
+        self.f_e = tf.keras.models.load_model('saved_model/F_E')
+        self.d = tf.keras.models.load_model('saved_model/D')
         
     #Encoder    
     def G_Encoder(self):

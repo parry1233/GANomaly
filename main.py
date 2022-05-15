@@ -1,3 +1,4 @@
+import pandas as pd
 from sqlalchemy import null
 #from GANomaly import GANomaly
 from GANomaly_small import GANomaly
@@ -12,8 +13,9 @@ import tensorflow as tf
 import os
 from TimeSeriesGenerator.main import dataPreprocess_Main
 import scipy.stats as st
+import xlsxwriter
     
-def train(x_ok, gan_trainer, d, g, g_e, cp, cpdir, classType, bz=32, epoch=1000):
+def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000):
     train_data_generator = get_data_generator(x_ok, bz)
     for i in range(epoch):
         if i==0:
@@ -37,7 +39,7 @@ def train(x_ok, gan_trainer, d, g, g_e, cp, cpdir, classType, bz=32, epoch=1000)
         if (i+1) % 50 == 0:
             print(f'epoch: {i+1}, g_loss: {g_loss}, d_loss: {d_loss}')
             save_checkpoints(cp, cpdir)
-            evaluate_fig(g, g_e, i+1, classType)
+            evaluate_fig(g, g_e, i+1, classType, score_rate=0.85)
             
 def save_checkpoints(cp ,cpdir):
     cp.save(file_prefix = os.path.join(cpdir, "ckpt"))
@@ -73,7 +75,7 @@ def Calculate_Score(rate, x_test, g, g_e):
     return score
     
             
-def evaluate_fig(g, g_e, epoch, classType):
+def evaluate_fig(g, g_e, epoch, classType, score_rate = 0.8):
     normal, abnormal = classType[0], classType[1]
     
     '''
@@ -83,7 +85,7 @@ def evaluate_fig(g, g_e, epoch, classType):
     score = np.sum(np.abs(encoded - encoded_gan), axis = -1)
     score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     '''
-    score = Calculate_Score(0.8, x_test, g, g_e)
+    score = Calculate_Score(score_rate, x_test, g, g_e)
     
     ''''''
     normal_score, abnormal_score = [], []
@@ -102,7 +104,7 @@ def evaluate_fig(g, g_e, epoch, classType):
     
     ''''''
     plt.plot([0, len(y_test)-1], [n_max,n_max],'k--', label = 'Normal Max: {0}'.format(n_max))
-    plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'AbNormal Min: {0}'.format(abn_min))
+    plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'Abnormal Min: {0}'.format(abn_min))
     plt.legend()
     
     #plt.show()
@@ -111,7 +113,7 @@ def evaluate_fig(g, g_e, epoch, classType):
     plt.savefig(filename)
     plt.close()
     
-def final_evaluate(g,g_e, normal):  
+def final_evaluate( g,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
     
     encoded = g_e.predict(x_test)
     gan_x = g.predict(x_test)
@@ -120,7 +122,7 @@ def final_evaluate(g,g_e, normal):
     #score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     
     
-    score = Calculate_Score(0.7, x_test, g, g_e)
+    score = Calculate_Score(score_rate, x_test, g, g_e)
     
     normal_score, abnormal_score = [], []
     for i in range(len(y_test)):
@@ -128,13 +130,13 @@ def final_evaluate(g,g_e, normal):
         else: abnormal_score.append(score[i])
     
     normal_score, abnormal_score = np.array(normal_score), np.array(abnormal_score)
-    (n_Tmin, n_Tmax) = st.t.interval(alpha=0.99, df=len(normal_score)-1, loc=np.mean(normal_score), scale=st.sem(normal_score))
-    (abn_Tmin, abn_Tmax) = st.t.interval(alpha=0.99, df=len(abnormal_score)-1, loc=np.mean(abnormal_score), scale=st.sem(abnormal_score))
+    (n_Tmin, n_Tmax) = st.t.interval(alpha=confidence_rate, df=len(normal_score)-1, loc=np.mean(normal_score), scale=st.sem(normal_score))
+    (abn_Tmin, abn_Tmax) = st.t.interval(alpha=confidence_rate, df=len(abnormal_score)-1, loc=np.mean(abnormal_score), scale=st.sem(abnormal_score))
     n_max, abn_min = max(normal_score), min(abnormal_score)
-    print('Interval of normal data in 99% confidence: ({0},{1}), Max of Normal Score: {2}'
-          .format( n_Tmin,n_Tmax, n_max))
-    print('Interval of abnormal data in 99% confidence: ({0},{1}), Min of Abnormal Score: {2}'
-          .format( abn_Tmin,abn_Tmax, abn_min))
+    print('Interval of normal data in {0}% confidence: ({1},{2}), Max of Normal Score: {3}'
+          .format(confidence_rate*100.0, n_Tmin,n_Tmax, n_max))
+    print('Interval of abnormal data in {0}% confidence: ({1},{2}), Min of Abnormal Score: {3}'
+          .format(confidence_rate*100.0, abn_Tmin,abn_Tmax, abn_min))
     
     rcParams['figure.figsize'] = 28, 10
     rcParams['lines.markersize'] = 3
@@ -142,18 +144,25 @@ def final_evaluate(g,g_e, normal):
     plt.ylabel('Score')
     plt.scatter(range(len(x_test)), score, c=['skyblue' if x == normal else 'pink' for x in y_test])
     plt.plot([0, len(y_test)-1], [n_max,n_max],'k--', label = 'Normal Max: {0}'.format(n_max))
-    plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'AbNormal Min: {0}'.format(abn_min))
+    plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'Abnormal Min: {0}'.format(abn_min))
     plt.legend()
     plt.savefig('final_result/result.png')
     plt.show()
     return gan_x
     
-def pic(ganX):
-    i = 5 # or 1
-    image = np.reshape(ganX[i:i+1], (64, 64))
-    image = image * 127 + 127
-    plt.imshow(image.astype(np.uint8), cmap='gray')
-    plt.show()
+def show_generate(testX, testY, ganX):
+    testX_reshape, ganX_reshape = np.reshape(testX, (len(testX), 25)), np.reshape(ganX, (len(ganX), 25))
+    testX_label, ganX_label = np.empty((len(testX), 26), float), np.empty((len(ganX), 26), float)
+    for i in range(len(testY)):
+        testX_label[i] = np.append(testX_reshape[i], testY[i])
+        ganX_label[i] = np.append(ganX_reshape[i], testY[i])
+    
+    
+    df = pd.DataFrame(testX_label).T
+    df.to_excel(excel_writer = 'final_result/Origin.xlsx')
+    df1 = pd.DataFrame(ganX_label).T
+    df1.to_excel(excel_writer = 'final_result/GAN.xlsx')
+    
     
     
 def generate_GIF():
@@ -175,6 +184,10 @@ if __name__ == "__main__":
     #x_test = loadData.reshape_x(x_test, 64, 64)
     
     ganomaly = GANomaly()
+    
+    #! for load trained model, use this line
+    ganomaly.load_model()
+    
     (g_e, g, e, f_e, d) = ganomaly.getModel()
     gantrainer = GANtrainer(g_e, g, e, f_e)
     
@@ -187,7 +200,10 @@ if __name__ == "__main__":
     checkpoint = tf.train.Checkpoint(g_e = g_e, g = g, e = e, f_e = f_e, d = d)
     checkpoint_dir = './training_checkpoints'
     
-    train(x_ok, gTrainer, d, g, g_e ,checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000)
+    #! for training use this line
+    #train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000)
+    #ganomaly.saveModel()
+    
     generate_GIF()
-    final_ganX = final_evaluate(g,g_e, normal)
-    #pic(final_ganX)
+    final_ganX = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=0.85)
+    show_generate(x_test, y_test, final_ganX)
