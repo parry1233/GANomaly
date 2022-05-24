@@ -75,7 +75,7 @@ class GANtrainer():
         self.gan_trainer = tf.keras.Model(self.input_layer, [self.adv_loss, self.cnt_loss, self.enc_loss])
         #self.gan_trainer.summary()
     
-    def loss(self, yt, yp):
+    def loss(self, yt, yp): #yt = y_true, yp = y_pred
         return yp
     
     def compile(self):
