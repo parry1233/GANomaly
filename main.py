@@ -186,7 +186,7 @@ if __name__ == "__main__":
     ganomaly = GANomaly()
     
     #! for load trained model, use this line
-    #ganomaly.load_model()
+    ganomaly.load_model()
     
     (g_e, g, e, f_e, d) = ganomaly.getModel()
     gantrainer = GANtrainer(g_e, g, e, f_e)
@@ -201,8 +201,8 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000)
-    ganomaly.saveModel()
+    #train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000)
+    #ganomaly.saveModel()
     
     generate_GIF()
     final_ganX = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=0.8)
