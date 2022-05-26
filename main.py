@@ -213,8 +213,8 @@ if __name__ == "__main__":
     
     ganomaly = GANomaly()
     
-    #! for load trained model, use this line
-    #ganomaly.load_model()
+    #? for load trained model, use this line
+    ganomaly.load_model()
     
     (g_e, g, e, f_e, d) = ganomaly.getModel()
     gantrainer = GANtrainer(g_e, g, e, f_e)
@@ -229,8 +229,8 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
-    ganomaly.saveModel()
+    #train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
+    #ganomaly.saveModel()
     
     generate_GIF()
     (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=scoreRate)
@@ -239,9 +239,9 @@ if __name__ == "__main__":
     svm = SVM_classifier(normal=normal_score, abnormal=abnormal_score, testSize=0.2)
     
     #! for training use this line
-    svm.train()
+    #svm.train()
     
-    #! for load trained model, use this line
+    #? for load trained model, use this line
     svm.load_model()
     
     X_test_on_SVM, predict_result, y_test_actual =  svm.accuracy_on_test()
