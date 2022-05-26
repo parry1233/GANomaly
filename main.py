@@ -14,6 +14,8 @@ import os
 from TimeSeriesGenerator.main import dataPreprocess_Main
 import scipy.stats as st
 import xlsxwriter
+
+from SVMcalssify import SVM_classifier
     
 def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000):
     train_data_generator = get_data_generator(x_ok, bz)
@@ -99,7 +101,7 @@ def evaluate_fig(g, g_e, epoch, classType, score_rate = 0.8):
     rcParams['lines.markersize'] = 3
     plt.xlabel('testing data')
     plt.ylabel('Score')
-    plt.scatter(range(len(x_test)), score, c=['skyblue' if x == normal else 'pink' for x in y_test])
+    plt.scatter(range(len(x_test)), score, c=['skyblue' if y == normal else 'pink' for y in y_test])
     plt.title('epoch: {:04d}'.format(epoch))
     
     ''''''
@@ -142,13 +144,31 @@ def final_evaluate( g,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):
     rcParams['lines.markersize'] = 3
     plt.xlabel('testing data')
     plt.ylabel('Score')
-    plt.scatter(range(len(x_test)), score, c=['skyblue' if x == normal else 'pink' for x in y_test])
+    plt.scatter(range(len(x_test)), score, c=['skyblue' if y == normal else 'pink' for y in y_test])
     plt.plot([0, len(y_test)-1], [n_max,n_max],'k--', label = 'Normal Max: {0}'.format(n_max))
     plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'Abnormal Min: {0}'.format(abn_min))
     plt.legend()
     plt.savefig('final_result/result.png')
     plt.show()
-    return gan_x
+    return gan_x, normal_score, abnormal_score, score
+
+def SVM_evaluate(score, predict, actual):
+    rcParams['figure.figsize'] = 28, 10
+    rcParams['lines.markersize'] = 3
+    plt.xlabel('testing data')
+    plt.ylabel('Score')
+    #1= normal, 0 = abnormal
+    plt.scatter(range(len(score)), score, c=['red' if predict[index]!=actual[index] and actual[index] == 0
+                                              else( 'blue' if predict[index]!=actual[index] and actual[index] == 1
+                                                   else ('skyblue' if predict[index] == 1 
+                                                         else 'pink'))
+                                              for index in range(len(predict))])
+    #plt.plot([0, len(y_test)-1], [n_max,n_max],'k--', label = 'Normal Max: {0}'.format(n_max))
+    #plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'Abnormal Min: {0}'.format(abn_min))
+    #plt.legend()
+    plt.savefig('final_result/SVM.png')
+    plt.show()
+    
     
 def show_generate(testX, testY, ganX):
     testX_reshape, ganX_reshape = np.reshape(testX, (len(testX), 25)), np.reshape(ganX, (len(ganX), 25))
@@ -205,5 +225,11 @@ if __name__ == "__main__":
     #ganomaly.saveModel()
     
     generate_GIF()
-    final_ganX = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=0.8)
+    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=0.8)
     show_generate(x_test, y_test, final_ganX)
+    
+    svm = SVM_classifier(normal=normal_score, abnormal=abnormal_score, testSize=0.2)
+    svm.train()
+    X_test_on_SVM, predict_result, y_test_actual =  svm.accuracy_on_test()
+    
+    SVM_evaluate(score=X_test_on_SVM, predict=predict_result, actual=y_test_actual)
