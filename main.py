@@ -17,7 +17,7 @@ import xlsxwriter
 
 from SVMcalssify import SVM_classifier
     
-def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000):
+def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000, score_rate = 0.8):
     train_data_generator = get_data_generator(x_ok, bz)
     for i in range(epoch):
         if i==0:
@@ -41,7 +41,7 @@ def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epo
         if (i+1) % 50 == 0:
             print(f'epoch: {i+1}, g_loss: {g_loss}, d_loss: {d_loss}')
             save_checkpoints(cp, cpdir)
-            evaluate_fig(g, g_e, i+1, classType, score_rate=0.85)
+            evaluate_fig(g, g_e, i+1, classType, score_rate=scoreRate)
             
 def save_checkpoints(cp ,cpdir):
     cp.save(file_prefix = os.path.join(cpdir, "ckpt"))
@@ -199,6 +199,7 @@ def generate_GIF():
     
 if __name__ == "__main__":
     normal, abnormal = 1, -1
+    scoreRate = 0.8
     (x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main(train_data_ratio=0.8)
     #x_ok = loadData.reshape_x(x_ok, 64, 64)
     #x_test = loadData.reshape_x(x_test, 64, 64)
@@ -221,15 +222,21 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    #train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000)
+    #train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
     #ganomaly.saveModel()
     
     generate_GIF()
-    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=0.8)
+    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=scoreRate)
     show_generate(x_test, y_test, final_ganX)
     
     svm = SVM_classifier(normal=normal_score, abnormal=abnormal_score, testSize=0.2)
-    svm.train()
+    
+    #! for training use this line
+    #svm.train()
+    
+    #! for load trained model, use this line
+    svm.load_model()
+    
     X_test_on_SVM, predict_result, y_test_actual =  svm.accuracy_on_test()
     
     SVM_evaluate(score=X_test_on_SVM, predict=predict_result, actual=y_test_actual)
