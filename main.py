@@ -199,15 +199,22 @@ def generate_GIF():
     
 if __name__ == "__main__":
     normal, abnormal = 1, -1
+    train_rate = 0.8
     scoreRate = 0.8
-    (x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main(train_data_ratio=0.8)
-    #x_ok = loadData.reshape_x(x_ok, 64, 64)
-    #x_test = loadData.reshape_x(x_test, 64, 64)
+    loadData = LoadData()
+    #(x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main(train_data_ratio=0.8)
+    (x_train, y_train), (x_test, y_test) = loadData.train_test_split(rate=train_rate)
+    print(x_train.shape, y_train.shape)
+    print(x_test.shape,y_test.shape)
+    x_train = x_train.reshape(-1,32, 32,1)
+    x_test = x_test.reshape(-1,32, 32,1)
+    print(x_train.shape, y_train.shape)
+    print(x_test.shape,y_test.shape)
     
     ganomaly = GANomaly()
     
     #! for load trained model, use this line
-    ganomaly.load_model()
+    #ganomaly.load_model()
     
     (g_e, g, e, f_e, d) = ganomaly.getModel()
     gantrainer = GANtrainer(g_e, g, e, f_e)
@@ -222,17 +229,17 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    #train(x_ok, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
-    #ganomaly.saveModel()
+    train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
+    ganomaly.saveModel()
     
     generate_GIF()
     (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=scoreRate)
-    show_generate(x_test, y_test, final_ganX)
+    #show_generate(x_test, y_test, final_ganX)
     
     svm = SVM_classifier(normal=normal_score, abnormal=abnormal_score, testSize=0.2)
     
     #! for training use this line
-    #svm.train()
+    svm.train()
     
     #! for load trained model, use this line
     svm.load_model()

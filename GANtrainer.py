@@ -59,7 +59,7 @@ class LATloss(keras.layers.Layer): #Latent loss (without feature extractor) -> C
       
 class GANtrainer():
     def __init__(self, g_e, g ,e, f_e):
-        self.height, self.width, self.channels = 5, 5, 1
+        self.height, self.width, self.channels = 32, 32, 1
         self.g_e, self.g, self.e, self.f_e = g_e, g, e, f_e
         # model for training
         self.input_layer = layers.Input(name='input', shape=(self.height, self.width, self.channels))

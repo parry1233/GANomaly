@@ -2,16 +2,86 @@ from turtle import width
 from keras.datasets import mnist
 import cv2
 import numpy as np
+import pandas as pd
+import sklearn.utils as skUtils
+
+import scipy.io as sio
 
 class LoadData():
     def __init__(self):
-        (self.x_train, self.y_train), (self.x_test, self.y_test) = mnist.load_data()
-
-    def reshape_x(self, x, width, height):
-        new_x = np.empty((len(x), width, height))
-        for i, e in enumerate(x):
-            new_x[i] = cv2.resize(e, (width, height))
-        return np.expand_dims(new_x, axis=-1) / 127 - 1
+        self.dataset = np.load('dataset/CWRU_48k_load_1_CNN_data.npz')
+        self.X = self.dataset['data']
+        self.Y = self.dataset['labels']
+        self.data_sort_by_category()
+    
+    def data_sort_by_category(self):
+        self.category = set(self.Y)
+        category_to_index = {
+            'Normal': 1,
+            'Ball_007': -1,
+            'Ball_014': -2,
+            'Ball_021': -3,
+            'OR_007': -4,
+            'OR_014': -5,
+            'OR_021': -6,
+            'IR_007': -7,
+            'IR_014': -8,
+            'IR_021': -9
+        }
+        self.x_dict, self.y_dict = {},{}
+        for category in set(self.Y):
+            #print(category)
+            self.x_dict[category] = self.X[self.Y == category]
+            #self.y_dict[category] = self.Y[self.Y == category]
+            self.index_y = np.array(self.Y)
+            self.index_y[self.index_y == category] = category_to_index[category]
+            #print(self.index_y)
+            self.y_dict[category] = self.index_y[self.Y == category].astype(int)
+            #print(self.y_dict[category])
+            #print(self.x_dict[category].shape, self.y_dict[category].shape)
+        #print()
+        #print(self.x_dict, self.y_dict)
+        
+    def train_test_split(self, rate = 0.8 ,each_abnormal_test_data=25):
+        x_normal_shuffle, y_normal_shuffle = skUtils.shuffle(self.x_dict['Normal'], self.y_dict['Normal'])
+        self.x_train, self.x_normal_test = x_normal_shuffle[:int(len(x_normal_shuffle)*rate)], x_normal_shuffle[int(len(x_normal_shuffle)*rate):]
+        self.y_train, self.y_normal_test = y_normal_shuffle[:int(len(y_normal_shuffle)*rate)], y_normal_shuffle[int(len(y_normal_shuffle)*rate):]
+        #print(self.x_train.shape, self.x_normal_test.shape)
+        #print(self.y_train.shape, self.y_normal_test.shape)
+        
+        abnormal_category = ['Ball_007', 'Ball_014', 'Ball_021', 'OR_007', 'OR_014', 'OR_021', 'IR_007', 'IR_014', 'IR_021']
+        abnormal_x_test, abnormal_y_test = {}, {}
+        for category in abnormal_category:
+            abnormal_x_test[category] = self.x_dict[category][:each_abnormal_test_data]
+            abnormal_y_test[category] = self.y_dict[category][:each_abnormal_test_data]
+            
+        
+        xTest = np.concatenate([self.x_normal_test,
+                                abnormal_x_test['Ball_007'],
+                                abnormal_x_test['Ball_014'],
+                                abnormal_x_test['Ball_021'],
+                                abnormal_x_test['OR_007'],
+                                abnormal_x_test['OR_014'],
+                                abnormal_x_test['OR_021'],
+                                abnormal_x_test['IR_007'],
+                                abnormal_x_test['IR_014'],
+                                abnormal_x_test['IR_021']])
+        yTest = np.concatenate([self.y_normal_test,
+                                abnormal_y_test['Ball_007'],
+                                abnormal_y_test['Ball_014'],
+                                abnormal_y_test['Ball_021'],
+                                abnormal_y_test['OR_007'],
+                                abnormal_y_test['OR_014'],
+                                abnormal_y_test['OR_021'],
+                                abnormal_y_test['IR_007'],
+                                abnormal_y_test['IR_014'],
+                                abnormal_y_test['IR_021']])
+        self.x_test, self.y_test = skUtils.shuffle(xTest, yTest)
+        #print(self.x_test.shape, self.y_test.shape)
+        #print(self.y_test)
+        
+        return (self.x_train, self.y_train), (self.x_test, self.y_test)
+        
     
     def Define_normal_Abnormal(self, normal_class, abnormal_class_1, abnormal_class_2):
         self.x_ok = self.x_train[self.y_train == normal_class]
@@ -24,4 +94,19 @@ class LoadData():
     
     def getOriginalData(self):
         return (self.x_train, self.y_train)
+    
 
+if __name__ == "__main__":
+    loaddata = LoadData()
+    loaddata.train_test_split()
+    (x_train, y_train), (x_test, y_test) = loaddata.train_test_split()
+    print(x_train.shape, y_train.shape)
+    #print(x_train)
+    #print(y_train)
+    print(x_test.shape, y_test.shape)
+    #print(y_test[y_test==-6])
+    
+    #mat = sio.loadmat('dataset/097.mat')
+    #print(mat.keys())
+    #print(mat['X097_DE_time'].shape)
+    
