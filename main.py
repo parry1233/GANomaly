@@ -247,3 +247,7 @@ if __name__ == "__main__":
     X_test_on_SVM, predict_result, y_test_actual =  svm.accuracy_on_test()
     
     SVM_evaluate(score=X_test_on_SVM, predict=predict_result, actual=y_test_actual)
+    
+    svm.ConfusionMartrix()
+    svm.ClassificationReport()
+    
