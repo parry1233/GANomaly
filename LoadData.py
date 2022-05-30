@@ -2,6 +2,7 @@ from turtle import width
 from keras.datasets import mnist
 import cv2
 import numpy as np
+from numpy import squeeze
 import pandas as pd
 import sklearn.utils as skUtils
 
@@ -96,6 +97,8 @@ class LoadData():
         return (self.x_train, self.y_train)
     
 
+import cwru_py3 as cwru
+
 if __name__ == "__main__":
     loaddata = LoadData()
     loaddata.train_test_split()
@@ -106,7 +109,16 @@ if __name__ == "__main__":
     print(x_test.shape, y_test.shape)
     #print(y_test[y_test==-6])
     
-    #mat = sio.loadmat('dataset/097.mat')
-    #print(mat.keys())
-    #print(mat['X097_DE_time'].shape)
+    mat = sio.loadmat('dataset/Normal_2.mat',squeeze_me=True)
+    print(mat.keys())
     
+    
+    '''
+    data = cwru.CWRU(exp="12DriveEndFault", rpm="1797", length=384)
+    print(data.nclasses)
+    print(data.labels)
+    arr_yTrain = np.array(data.y_train)
+    print(np.array(arr_yTrain))
+    print(arr_yTrain[arr_yTrain==15].shape)
+    print(data.X_train[arr_yTrain==15].shape)
+    '''
