@@ -43,7 +43,7 @@ class LoadData():
         #print()
         #print(self.x_dict, self.y_dict)
         
-    def train_test_split(self, rate = 0.8 ,each_abnormal_test_data=25):
+    def train_test_split(self, rate = 0.8):
         x_normal_shuffle, y_normal_shuffle = skUtils.shuffle(self.x_dict['Normal'], self.y_dict['Normal'])
         self.x_train, self.x_normal_test = x_normal_shuffle[:int(len(x_normal_shuffle)*rate)], x_normal_shuffle[int(len(x_normal_shuffle)*rate):]
         self.y_train, self.y_normal_test = y_normal_shuffle[:int(len(y_normal_shuffle)*rate)], y_normal_shuffle[int(len(y_normal_shuffle)*rate):]
@@ -52,6 +52,7 @@ class LoadData():
         
         abnormal_category = ['Ball_007', 'Ball_014', 'Ball_021', 'OR_007', 'OR_014', 'OR_021', 'IR_007', 'IR_014', 'IR_021']
         abnormal_x_test, abnormal_y_test = {}, {}
+        each_abnormal_test_data = int(len(x_normal_shuffle)*(1-rate) / (len(self.y_dict.keys())-1) )
         for category in abnormal_category:
             abnormal_x_test[category] = self.x_dict[category][:each_abnormal_test_data]
             abnormal_y_test[category] = self.y_dict[category][:each_abnormal_test_data]
@@ -82,6 +83,36 @@ class LoadData():
         #print(self.y_test)
         
         return (self.x_train, self.y_train), (self.x_test, self.y_test)
+    
+    def SVC_dataPrepare(self):
+        abnormal_category = ['Ball_007', 'Ball_014', 'Ball_021', 'OR_007', 'OR_014', 'OR_021', 'IR_007', 'IR_014', 'IR_021']
+        abnormal_x, abnormal_y = {}, {}
+        each_abnormal_data = int(len(self.x_dict['Normal']) / (len(self.y_dict.keys())-1) )
+        for category in abnormal_category:
+            abnormal_x[category] = self.x_dict[category][:each_abnormal_data]
+            abnormal_y[category] = self.y_dict[category][:each_abnormal_data]
+        
+        xdata = np.concatenate([self.x_dict['Normal'],
+                                abnormal_x['Ball_007'],
+                                abnormal_x['Ball_014'],
+                                abnormal_x['Ball_021'],
+                                abnormal_x['OR_007'],
+                                abnormal_x['OR_014'],
+                                abnormal_x['OR_021'],
+                                abnormal_x['IR_007'],
+                                abnormal_x['IR_014'],
+                                abnormal_x['IR_021']])
+        ydata = np.concatenate([self.y_dict['Normal'],
+                                abnormal_y['Ball_007'],
+                                abnormal_y['Ball_014'],
+                                abnormal_y['Ball_021'],
+                                abnormal_y['OR_007'],
+                                abnormal_y['OR_014'],
+                                abnormal_y['OR_021'],
+                                abnormal_y['IR_007'],
+                                abnormal_y['IR_014'],
+                                abnormal_y['IR_021']])
+        return (xdata, ydata)
         
     
     def Define_normal_Abnormal(self, normal_class, abnormal_class_1, abnormal_class_2):

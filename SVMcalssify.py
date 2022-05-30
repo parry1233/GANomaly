@@ -7,6 +7,7 @@ from matplotlib.colors import ListedColormap
 import joblib
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
+from sklearn.model_selection import GridSearchCV
 
 class SVM_classifier():
     def __init__(self,normal, abnormal, testSize):
@@ -18,24 +19,33 @@ class SVM_classifier():
         self.y_concat = np.concatenate((y_normal, y_abnormal), axis=None)
         #print(self.y_concat)
         
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.x_concat, self.y_concat, test_size=testSize, random_state=0)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.x_concat, self.y_concat, test_size=testSize, random_state=10)
         #print(self.y_train)
         #print(self.y_test)
         print('Train data count = '+str(len(self.y_train)), 'Test data count = '+str(len(self.y_test)))
+        print('normal count='+str(normal_len),'abnormal count='+str(abnormal_len))
         
-        self.svm = SVC(kernel='linear', probability=True)
+        
+        # defining parameter range
+        param_grid = {'C': [0.1, 1, 10, 100, 1000],
+                    'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
+                    'kernel': ['linear']}
+        self.gs_svm = GridSearchCV(SVC(), param_grid, refit=True, verbose=3)
+        #self.svm = SVC(kernel='linear', probability=True, C=1)
         
     def train(self):
         X_train_reshape = self.X_train.reshape(-1,1)
-        self.svm.fit(X_train_reshape, self.y_train)
+        self.gs_svm.fit(X_train_reshape, self.y_train)
+        print(self.gs_svm.best_params_)
+        print(self.gs_svm.best_estimator_)
     
     def load_model(self):
-        self.svm = joblib.load('saved_model/SVM_model')
+        self.gs_svm = joblib.load('saved_model/SVM_model')
     
     def accuracy_on_test(self):
         X_test_reshape = self.X_test.reshape(-1,1)
         error = 0
-        predict_result = self.svm.predict(X_test_reshape)
+        predict_result = self.gs_svm.predict(X_test_reshape)
         for i, v in enumerate(predict_result):
             if v!= self.y_test[i]:
                 error += 1
@@ -43,15 +53,15 @@ class SVM_classifier():
         print('error = '+str(error)+' on '+str(len(self.y_test))+' test samples')
         print('accuracy = '+str(1 - (error / len(self.y_test))))
         
-        joblib.dump(self.svm, 'saved_model/SVM_model')
+        joblib.dump(self.gs_svm, 'saved_model/SVM_model')
         
         return self.X_test, predict_result, self.y_test
     
     def ConfusionMartrix(self):
         X_train_reshape = self.X_train.reshape(-1,1)
         X_test_reshape = self.X_test.reshape(-1,1)
-        train_predictions = self.svm.predict(X_train_reshape)
-        test_predictions = self.svm.predict(X_test_reshape)
+        train_predictions = self.gs_svm.predict(X_train_reshape)
+        test_predictions = self.gs_svm.predict(X_test_reshape)
         train_confu_matrix = confusion_matrix(self.y_train, train_predictions)
         test_confu_matrix = confusion_matrix(self.y_test, test_predictions)
         
@@ -79,7 +89,7 @@ class SVM_classifier():
         
     def ClassificationReport(self):
         X_test_reshape = self.X_test.reshape(-1,1)
-        test_predictions = self.svm.predict(X_test_reshape)
+        test_predictions = self.gs_svm.predict(X_test_reshape)
         class_report = classification_report(y_pred=test_predictions, y_true=self.y_test)
         print(class_report)
         auc = metrics.roc_auc_score(y_true=self.y_test, y_score=test_predictions)

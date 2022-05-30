@@ -17,7 +17,7 @@ import xlsxwriter
 
 from SVMcalssify import SVM_classifier
     
-def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000, score_rate = 0.8):
+def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000, score_rate = 0.8, fig_interval=50):
     train_data_generator = get_data_generator(x_ok, bz)
     for i in range(epoch):
         if i==0:
@@ -38,10 +38,10 @@ def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epo
         d.trainable = False        
         g_loss = gan_trainer.train_on_batch(x, y)
         
-        if (i+1) % 50 == 0:
+        if (i+1) % fig_interval == 0:
             print(f'epoch: {i+1}, g_loss: {g_loss}, d_loss: {d_loss}')
             save_checkpoints(cp, cpdir)
-            evaluate_fig(g, g_e, i+1, classType, score_rate=scoreRate)
+            evaluate_fig(g, g_e, i+1, classType, score_rate=SCORE_RATE)
             
 def save_checkpoints(cp ,cpdir):
     cp.save(file_prefix = os.path.join(cpdir, "ckpt"))
@@ -115,7 +115,7 @@ def evaluate_fig(g, g_e, epoch, classType, score_rate = 0.8):
     plt.savefig(filename)
     plt.close()
     
-def final_evaluate( g,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
+def final_evaluate( g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
     
     encoded = g_e.predict(x_test)
     gan_x = g.predict(x_test)
@@ -152,6 +152,16 @@ def final_evaluate( g,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):
     plt.show()
     return gan_x, normal_score, abnormal_score, score
 
+def x_to_Score(x_data, y_data, g, g_e, score_rate=0.8):
+    x_data = x_data.reshape(-1,32, 32,1)
+    score = Calculate_Score(score_rate, x_data, g, g_e)
+    normal_score, abnormal_score = [], []
+    for i in range(len(y_data)):
+        if y_data[i]==1: normal_score.append(score[i])
+        else: abnormal_score.append(score[i])
+    normal_score, abnormal_score = np.array(normal_score), np.array(abnormal_score)
+    return normal_score, abnormal_score
+
 def SVM_evaluate(score, predict, actual):
     rcParams['figure.figsize'] = 28, 10
     rcParams['lines.markersize'] = 3
@@ -170,7 +180,7 @@ def SVM_evaluate(score, predict, actual):
     plt.show()
     
     
-def show_generate(testX, testY, ganX):
+def excel_generate(testX, testY, ganX):
     testX_reshape, ganX_reshape = np.reshape(testX, (len(testX), 25)), np.reshape(ganX, (len(ganX), 25))
     testX_label, ganX_label = np.empty((len(testX), 26), float), np.empty((len(ganX), 26), float)
     for i in range(len(testY)):
@@ -198,12 +208,17 @@ def generate_GIF():
     
     
 if __name__ == "__main__":
-    normal, abnormal = 1, -1
-    train_rate = 0.8
-    scoreRate = 0.8
+    NORMAL, ABNORMAL = 1, -1
+    GAN_TRAIN_RATE = 0.8
+    SVM_TRAIN_RATE = 0.8
+    SCORE_RATE = 0.8
+    EPOCH = 1000
+    BATCH_SIZE = 16
+    CONFIDENCE_RATE = 0.99
+    
     loadData = LoadData()
     #(x_ok, y_ok), (x_test, y_test) = dataPreprocess_Main(train_data_ratio=0.8)
-    (x_train, y_train), (x_test, y_test) = loadData.train_test_split(rate=train_rate)
+    (x_train, y_train), (x_test, y_test) = loadData.train_test_split(rate=GAN_TRAIN_RATE)
     print(x_train.shape, y_train.shape)
     print(x_test.shape,y_test.shape)
     x_train = x_train.reshape(-1,32, 32,1)
@@ -229,14 +244,22 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    #train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [normal,abnormal], bz=16, epoch=2000, )
+    #train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [NORMAL,ABNORMAL], bz=BATCH_SIZE, epoch=EPOCH, fig_interval=(EPOCH//10))
     #ganomaly.saveModel()
     
     generate_GIF()
-    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g,g_e, normal, confidence_rate=0.995, score_rate=scoreRate)
-    #show_generate(x_test, y_test, final_ganX)
+    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
+    #excel_generate(x_test, y_test, final_ganX)
     
-    svm = SVM_classifier(normal=normal_score, abnormal=abnormal_score, testSize=0.2)
+    
+    
+    
+    
+    svm_x_data, svm_y_data = loadData.SVC_dataPrepare()
+    svm_normal_score, svm_abnormal_score = x_to_Score(x_data=svm_x_data, y_data=svm_y_data, g=g, g_e=g_e, score_rate=SCORE_RATE)
+    print('svm normal = '+str(len(svm_normal_score))+', abnormal = '+str(len(svm_abnormal_score)))
+    
+    svm = SVM_classifier(normal=svm_normal_score, abnormal=svm_abnormal_score, testSize=(1-SVM_TRAIN_RATE))
     
     #! for training use this line
     #svm.train()
