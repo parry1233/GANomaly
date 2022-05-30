@@ -212,7 +212,8 @@ if __name__ == "__main__":
     GAN_TRAIN_RATE = 0.8
     SVM_TRAIN_RATE = 0.8
     SCORE_RATE = 0.8
-    EPOCH = 1000
+    EPOCH = 2000
+    FIG_INTERVAL = 100
     BATCH_SIZE = 16
     CONFIDENCE_RATE = 0.99
     
@@ -244,11 +245,11 @@ if __name__ == "__main__":
     checkpoint_dir = './training_checkpoints'
     
     #! for training use this line
-    #train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [NORMAL,ABNORMAL], bz=BATCH_SIZE, epoch=EPOCH, fig_interval=(EPOCH//10))
+    #train(x_train, gTrainer, g_e, g, e, f_e, d, checkpoint, checkpoint_dir, [NORMAL,ABNORMAL], bz=BATCH_SIZE, epoch=EPOCH, fig_interval=FIG_INTERVAL)
     #ganomaly.saveModel()
     
-    generate_GIF()
-    (final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
+    #generate_GIF()
+    #(final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     #excel_generate(x_test, y_test, final_ganX)
     
     
