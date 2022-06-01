@@ -71,9 +71,11 @@ def Calculate_Score(rate, x_test, g, g_e):
     encoded = g_e.predict(x_test) #Ge(X)
     gan_x = g.predict(x_test) #X~ = G(Z)
     encoded_gan = g_e.predict(gan_x) #Ge( X~ )
-    sum_over_row = np.sum(np.sum(np.abs(x_test - gan_x), axis = 0))
-    Apparent_loss = np.sum(sum_over_row, axis = -1) #apparent loss = sum of (X - X~)
-    Latent_loss = np.sum(np.abs(encoded - encoded_gan), axis = -1) #latent loss = sum of (Ge(X) - Ge(X~))^2
+    #sum_over_row = np.mean(np.abs(x_test - gan_x).reshape(-1,1024), axis=-1)
+    #print(sum_over_row.shape)
+    Apparent_loss = np.mean(np.abs(x_test - gan_x).reshape(-1,1024), axis=-1) #apparent loss = sum of (X - X~)
+    #print(sum_over_row.shape)
+    Latent_loss = np.mean(np.abs(encoded - encoded_gan), axis = -1) #latent loss = sum of (Ge(X) - Ge(X~))^2
     score = Apparent_loss * rate + (1.0-rate)*Latent_loss
     score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
     return score
@@ -154,7 +156,7 @@ def final_evaluate( g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):
     plt.show()
     return gan_x, normal_score, abnormal_score, score
 
-def final_evaluate(category, g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
+def Evaluate_by_Category(category, g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
     
     encoded = g_e.predict(x_test)
     gan_x = g.predict(x_test)
@@ -367,7 +369,7 @@ if __name__ == "__main__":
     #generate_GIF()
     #(final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     #excel_generate(x_test, y_test, final_ganX)
-    #final_evaluate(True, g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
+    #Evaluate_by_Category(True, g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     plt_signal(x_data=x_test, y_data=y_test, g=g)
     
     
