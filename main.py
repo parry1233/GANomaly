@@ -15,6 +15,8 @@ from TimeSeriesGenerator.main import dataPreprocess_Main
 import scipy.stats as st
 import xlsxwriter
 
+import random
+
 from SVMcalssify import SVM_classifier
     
 def train(x_ok, gan_trainer, g_e, g, e, f_e, d, cp, cpdir, classType, bz=32, epoch=1000, score_rate = 0.8, fig_interval=50):
@@ -152,6 +154,43 @@ def final_evaluate( g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):
     plt.show()
     return gan_x, normal_score, abnormal_score, score
 
+def plt_signal(x_data, y_data, g):
+    
+    x_normal = x_data[y_data==1]
+    x_abnormal = x_data[y_data!=1]
+    y_normal = y_data[y_data==1]
+    y_abnormal = y_data[y_data!=1]
+    
+    n1 = random.randint(0, len(x_normal)-1)
+    n2 = random.randint(0, len(x_abnormal)-1)
+    
+    gan_x_normal = g.predict(x_normal)
+    gan_x_abnormal = g.predict(x_abnormal)
+    
+    x_normal = x_normal.reshape(-1,1024)
+    gan_x_normal = gan_x_normal.reshape(-1,1024)
+    x_abnormal = x_abnormal.reshape(-1,1024)
+    gan_x_abnormal = gan_x_abnormal.reshape(-1,1024)
+    
+    
+    print(x_normal.shape, x_abnormal.shape)
+    #print(y_normal)
+    #print(y_abnormal)
+    
+    fig, ax = plt.subplots(1,2, dpi = 150, figsize = (10, 4))
+    ax[0].plot(x_normal[n1],'g-', label="X")
+    ax[0].plot(gan_x_normal[n1],'r-', label="X~")
+    ax[0].set_xlabel('time')
+    ax[0].set_ylabel('Normal signal: {0}'.format(y_normal[n1]))
+    ax[0].legend()
+    
+    ax[1].plot(x_abnormal[n2],'g-', label="X")
+    ax[1].plot(gan_x_abnormal[n2],'r-', label="X~")
+    ax[1].set_xlabel('time')
+    ax[1].set_ylabel('Abnormal signal: {0}'.format(y_abnormal[n2]))
+    ax[1].legend()
+    plt.show()
+
 def x_to_Score(x_data, y_data, g, g_e, score_rate=0.8):
     x_data = x_data.reshape(-1,32, 32,1)
     score = Calculate_Score(score_rate, x_data, g, g_e)
@@ -181,7 +220,7 @@ def SVM_evaluate(score, predict, actual):
     
     
 def excel_generate(testX, testY, ganX):
-    testX_reshape, ganX_reshape = np.reshape(testX, (len(testX), 25)), np.reshape(ganX, (len(ganX), 25))
+    testX_reshape, ganX_reshape = np.reshape(testX, (len(testX), 1024)), np.reshape(ganX, (len(ganX), 1024))
     testX_label, ganX_label = np.empty((len(testX), 26), float), np.empty((len(ganX), 26), float)
     for i in range(len(testY)):
         testX_label[i] = np.append(testX_reshape[i], testY[i])
@@ -251,6 +290,7 @@ if __name__ == "__main__":
     #generate_GIF()
     #(final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     #excel_generate(x_test, y_test, final_ganX)
+    plt_signal(x_data=x_test, y_data=y_test, g=g)
     
     
     
