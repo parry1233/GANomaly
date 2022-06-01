@@ -154,41 +154,118 @@ def final_evaluate( g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):
     plt.show()
     return gan_x, normal_score, abnormal_score, score
 
+def final_evaluate(category, g ,g_e, normal, confidence_rate = 0.99, score_rate = 0.8):  
+    
+    encoded = g_e.predict(x_test)
+    gan_x = g.predict(x_test)
+    encoded_gan = g_e.predict(gan_x)
+    #score = np.sum(np.abs(encoded - encoded_gan), axis = -1)
+    #score = (score - np.min(score)) / (np.max(score) - np.min(score)) # map to 0~1
+    
+    
+    score = Calculate_Score(score_rate, x_test, g, g_e)
+    
+    normal_score, abnormal_score = [], []
+    for i in range(len(y_test)):
+        if y_test[i]==1: normal_score.append(score[i])
+        else: abnormal_score.append(score[i])
+    
+    normal_score, abnormal_score = np.array(normal_score), np.array(abnormal_score)
+    (n_Tmin, n_Tmax) = st.t.interval(alpha=confidence_rate, df=len(normal_score)-1, loc=np.mean(normal_score), scale=st.sem(normal_score))
+    (abn_Tmin, abn_Tmax) = st.t.interval(alpha=confidence_rate, df=len(abnormal_score)-1, loc=np.mean(abnormal_score), scale=st.sem(abnormal_score))
+    n_max, abn_min = max(normal_score), min(abnormal_score)
+    print('Interval of normal data in {0}% confidence: ({1},{2}), Max of Normal Score: {3}'
+          .format(confidence_rate*100.0, n_Tmin,n_Tmax, n_max))
+    print('Interval of abnormal data in {0}% confidence: ({1},{2}), Min of Abnormal Score: {3}'
+          .format(confidence_rate*100.0, abn_Tmin,abn_Tmax, abn_min))
+    
+    rcParams['figure.figsize'] = 28, 10
+    rcParams['lines.markersize'] = 3
+    plt.xlabel('testing data')
+    plt.ylabel('Score')
+    plt.scatter(range(len(x_test)), score, c=['skyblue' if y == normal else 
+                                              ('pink' if y==-1 or y==-2 or y==-3 else 
+                                               ('orange' if y==-4 or y==-5 or y==-6 else
+                                                ('green' if y==-7 or y==-8 or y==-9 else 'black'))) 
+                                              for y in y_test])
+    plt.plot([0, len(y_test)-1], [n_max,n_max],'k--', label = 'Normal Max: {0}'.format(n_max))
+    plt.plot([0, len(y_test)-1], [abn_min,abn_min],'r--', label = 'Abnormal Min: {0}'.format(abn_min))
+    plt.legend()
+    plt.savefig('final_result/result_cateogry.png')
+    plt.show()
+    return gan_x, normal_score, abnormal_score, score
+
 def plt_signal(x_data, y_data, g):
     
     x_normal = x_data[y_data==1]
-    x_abnormal = x_data[y_data!=1]
     y_normal = y_data[y_data==1]
-    y_abnormal = y_data[y_data!=1]
+    x_Ball, x_OR, x_IR = [], [], []
+    y_Ball, y_OR, y_IR = [], [], []
+    for i in range(len(x_data)):
+        if (y_data[i]==-1 or y_data[i]==-2 or y_data[i]==-3):
+            x_Ball.append(x_data[i])
+            y_Ball.append(y_data[i])
+        elif (y_data[i]==-4 or y_data[i]==-5 or y_data[i]==-6):
+            x_OR.append(x_data[i])
+            y_OR.append(y_data[i])
+        elif (y_data[i]==-7 or y_data[i]==-8 or y_data[i]==-9):
+            x_IR.append(x_data[i])
+            y_IR.append(y_data[i])
+    x_Ball, x_OR, x_IR = np.array(x_Ball), np.array(x_OR), np.array(x_IR)
+    y_Ball, y_OR, y_IR = np.array(y_Ball), np.array(y_OR), np.array(y_IR)
+    
+    #print(x_normal.shape, x_Ball.shape, x_OR.shape, x_IR.shape)
+    #print(y_normal.shape, y_Ball.shape, y_OR.shape, y_IR.shape)
     
     n1 = random.randint(0, len(x_normal)-1)
-    n2 = random.randint(0, len(x_abnormal)-1)
+    n2 = random.randint(0, len(x_Ball)-1)
+    n3 = random.randint(0, len(x_OR)-1)
+    n4 = random.randint(0, len(x_IR)-1)
     
     gan_x_normal = g.predict(x_normal)
-    gan_x_abnormal = g.predict(x_abnormal)
+    gan_x_Ball = g.predict(x_Ball)
+    gan_x_OR = g.predict(x_OR)
+    gan_x_IR = g.predict(x_IR)
     
     x_normal = x_normal.reshape(-1,1024)
     gan_x_normal = gan_x_normal.reshape(-1,1024)
-    x_abnormal = x_abnormal.reshape(-1,1024)
-    gan_x_abnormal = gan_x_abnormal.reshape(-1,1024)
+    x_Ball = x_Ball.reshape(-1,1024)
+    x_OR = x_Ball.reshape(-1,1024)
+    x_IR = x_Ball.reshape(-1,1024)
+    gan_x_Ball = gan_x_Ball.reshape(-1,1024)
+    gan_x_OR = gan_x_OR.reshape(-1,1024)
+    gan_x_IR = gan_x_IR.reshape(-1,1024)
     
     
-    print(x_normal.shape, x_abnormal.shape)
+    print(x_normal.shape, x_Ball.shape, x_OR.shape, x_IR.shape)
     #print(y_normal)
     #print(y_abnormal)
     
-    fig, ax = plt.subplots(1,2, dpi = 150, figsize = (10, 4))
-    ax[0].plot(x_normal[n1],'g-', label="X")
-    ax[0].plot(gan_x_normal[n1],'r-', label="X~")
-    ax[0].set_xlabel('time')
-    ax[0].set_ylabel('Normal signal: {0}'.format(y_normal[n1]))
-    ax[0].legend()
+    fig, ax = plt.subplots(2,2, dpi = 150, figsize = (10, 4))
+    ax[0,0].plot(x_normal[n1],'skyblue', label="X")
+    ax[0,0].plot(gan_x_normal[n1],'r-', label="X~")
+    ax[0,0].set_xlabel('time')
+    ax[0,0].set_ylabel('Normal signal'.format(y_normal[n1]))
+    ax[0,0].legend()
     
-    ax[1].plot(x_abnormal[n2],'g-', label="X")
-    ax[1].plot(gan_x_abnormal[n2],'r-', label="X~")
-    ax[1].set_xlabel('time')
-    ax[1].set_ylabel('Abnormal signal: {0}'.format(y_abnormal[n2]))
-    ax[1].legend()
+    ax[0,1].plot(x_Ball[n2],'pink', label="X")
+    ax[0,1].plot(gan_x_Ball[n2],'r-', label="X~")
+    ax[0,1].set_xlabel('time')
+    ax[0,1].set_ylabel('Ball signal')
+    ax[0,1].legend()
+    
+    ax[1,0].plot(x_OR[n3],'orange', label="X")
+    ax[1,0].plot(gan_x_OR[n3],'r-', label="X~")
+    ax[1,0].set_xlabel('time')
+    ax[1,0].set_ylabel('OR signal')
+    ax[1,0].legend()
+    
+    ax[1,1].plot(x_IR[n4],'green', label="X")
+    ax[1,1].plot(gan_x_IR[n4],'r-', label="X~")
+    ax[1,1].set_xlabel('time')
+    ax[1,1].set_ylabel('IR signal')
+    ax[1,1].legend()
+    
     plt.show()
 
 def x_to_Score(x_data, y_data, g, g_e, score_rate=0.8):
@@ -290,6 +367,7 @@ if __name__ == "__main__":
     #generate_GIF()
     #(final_ganX, normal_score, abnormal_score, score) = final_evaluate(g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     #excel_generate(x_test, y_test, final_ganX)
+    #final_evaluate(True, g, g_e, NORMAL, confidence_rate=CONFIDENCE_RATE, score_rate=SCORE_RATE)
     plt_signal(x_data=x_test, y_data=y_test, g=g)
     
     
